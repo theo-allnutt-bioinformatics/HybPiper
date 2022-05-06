@@ -1,5 +1,12 @@
 # Changelog
 
+**2.1dev** *May, 2022*
+*T. R. Allnutt modifications*
+
+Changed the way assemble multithreads - for diamond and blastx no longer  uses gnu parallel.
+Changed dictionary i/o in disribute reads to speed it up.
+
+
 **2.0 release candidate** *March, 2022*
 
 This update involves a substantial refactor of the HybPiper pipeline, with changes to the internal code, additional functionality, and additional output. Changes include:
