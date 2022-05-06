@@ -69,6 +69,9 @@ import pkg_resources
 import collections
 import time
 
+
+print("assemble.py dev version 1.0")
+
 # f-strings will produce a 'SyntaxError: invalid syntax' error if not supported by Python version:
 f'HybPiper requires Python 3.6 or higher.'
 
@@ -518,30 +521,23 @@ def blastx(readfiles, targetfile, evalue, basename, cpu=None, max_target_seqs=10
 
     if unpaired:
         read_file = readfiles
-        # Check if read file is gzipped:
+        
         filename, file_extension = os.path.splitext(read_file)
-        if file_extension == '.gz':
-            logger.debug(f'Processing gzipped file {os.path.basename(read_file)}')
-            pipe_cmd = f"gunzip -c {read_file} | awk '{{if(NR % 4 == 1 || NR % 4 == 2) {{sub(/@/, \">\"); print; }} " \
-                       f"}}'"
-        else:
-            pipe_cmd = f"cat {read_file} | awk '{{if(NR % 4 == 1 || NR % 4 == 2) {{sub(/@/, \">\"); print; }} }}'"
-        if diamond and diamond_sensitivity:
-            blastx_command = f'diamond blastx --db {db_file} --query - --evalue {evalue} --outfmt 6 --max-target-seqs' \
-                             f' {max_target_seqs} --{diamond_sensitivity}'
-        elif diamond:
-            blastx_command = f'diamond blastx --db {db_file} --query - --evalue {evalue} --outfmt 6 --max-target-seqs' \
-                             f' {max_target_seqs}'
-        else:
-            blastx_command = f'blastx -db {db_file} -query - -evalue {evalue} -outfmt 6 -max_target_seqs' \
-                             f' {max_target_seqs}'
-        if cpu:
-            full_command = f"time {pipe_cmd} | parallel -j {cpu} -k --block 200K --recstart '>' --pipe " \
-                           f"'{blastx_command}' >> {basename}_unpaired.blastx"
-        else:
-            full_command = f"time {pipe_cmd} | parallel -k --block 200K --recstart '>' --pipe '{blastx_command}' >>" \
-                           f" {basename}_unpaired.blastx"
+      
 
+        if diamond and diamond_sensitivity:
+            blastx_command = f'diamond blastx --db {db_file} --query {read_file} --evalue {evalue} --outfmt 6 --max-target-seqs {max_target_seqs} --{diamond_sensitivity} --threads {cpu}'
+
+        elif diamond:
+            blastx_command = f'diamond blastx --db {db_file} --query {read_file} --evalue {evalue} --outfmt 6 --max-target-seqs {max_target_seqs} --threads {cpu}'
+
+        else:
+            blastx_command = f'blastx -db {db_file} -query {read_file} -evalue {evalue} -outfmt 6 -max_target_seqs {max_target_seqs} -num_threads {cpu}'
+        
+        full_command = f'{blastx_command} >> {basename}_unpaired.blastx'
+
+
+        
         fill = utils.fill_forward_slash(f'{"[CMD]:":10} {full_command}', width=90, subsequent_indent=' ' * 11,
                                         break_long_words=False, break_on_forward_slash=True)
         logger.info(f'{fill}')
@@ -565,28 +561,18 @@ def blastx(readfiles, targetfile, evalue, basename, cpu=None, max_target_seqs=10
         for read_file in readfiles:
             # Check if read file is gzipped:
             filename, file_extension = os.path.splitext(read_file)
-            if file_extension == '.gz':
-                logger.debug(f'Processing gzipped file {os.path.basename(read_file)}')
-                pipe_cmd = f"gunzip -c {read_file} | awk '{{if(NR % 4 == 1 || NR % 4 == 2) {{sub(/@/, \">\"); print; " \
-                           f"}} }}'"
-            else:
-                pipe_cmd = f"cat {read_file} | awk '{{if(NR % 4 == 1 || NR % 4 == 2) {{sub(/@/, \">\"); print; }} }}'"
 
             if diamond and diamond_sensitivity:
-                blastx_command = f'diamond blastx --db {db_file} --query - --evalue {evalue} --outfmt 6 ' \
-                                 f'--max-target-seqs {max_target_seqs} --{diamond_sensitivity}'
+                blastx_command = f'diamond blastx --db {db_file} --query {read_file} --evalue {evalue} --outfmt 6 --max-target-seqs {max_target_seqs} --{diamond_sensitivity} --threads {cpu}'
+            
             elif diamond:
-                blastx_command = f'diamond blastx --db {db_file} --query - --evalue {evalue} --outfmt 6 ' \
-                                 f'--max-target-seqs {max_target_seqs}'
+                blastx_command = f'diamond blastx --db {db_file} --query {read_file} --evalue {evalue} --outfmt 6 --max-target-seqs {max_target_seqs} --threads {cpu}'
+            
             else:
-                blastx_command = f'blastx -db {db_file} -query - -evalue {evalue} -outfmt 6 -max_target_seqs' \
-                                 f' {max_target_seqs}'
-            if cpu:
-                full_command = f"time {pipe_cmd} | parallel -j {cpu} -k --block 200K --recstart '>' --pipe " \
-                               f"'{blastx_command}' >> {basename}.blastx"
-            else:
-                full_command = f"time {pipe_cmd} | parallel -k --block 200K --recstart '>' --pipe " \
-                               f"'{blastx_command}' >> {basename}.blastx"
+                blastx_command = f'blastx -db {db_file} -query {read_file} -evalue {evalue} -outfmt 6 -max_target_seqs {max_target_seqs} -num_threads {cpu}'
+        
+            full_command = f'{blastx_command} >> {basename}.blastx'
+
 
             fill = utils.fill_forward_slash(f'{"[CMD]:":10} {full_command}', width=90, subsequent_indent=' ' * 11,
                                             break_long_words=False, break_on_forward_slash=True)
@@ -1171,37 +1157,31 @@ def assemble(args):
     ####################################################################################################################
     # Check read and target files
     ####################################################################################################################
-    # Set target file type and path, and check it exists and isn't empty::
+    # Set target file type and path:
     if args.targetfile_dna:
-        targetfile = os.path.abspath(args.targetfile_dna)
+        targetfile = args.targetfile_dna
         targetfile_type = 'DNA'
     elif args.targetfile_aa:
-        targetfile = os.path.abspath(args.targetfile_aa)
+        targetfile = args.targetfile_aa
         targetfile_type = 'protein'
 
-    if os.path.isfile(targetfile) and not os.path.getsize(targetfile) == 0:
-        logger.debug(f'Input target file {os.path.basename(targetfile)} exists and is not empty, proceeding...')
-    else:
-        sys.exit(f'Input target file {os.path.basename(targetfile)} does not exist or is empty!')
+    logger.debug(f'The target file {targetfile} has been provided, containing {targetfile_type} sequences')
 
-    logger.debug(f'The target file {os.path.basename(targetfile)} has been provided, containing {targetfile_type} '
-                 f'sequences')
-
-    # Check that the input read files exist and aren't empty:
+    # Check that the target-file and input read files exist and aren't empty:
     for read_file in readfiles:
         if os.path.isfile(read_file) and not os.path.getsize(read_file) == 0:
             logger.debug(f'Input read file {read_file} exists and is not empty, proceeding...')
         else:
             sys.exit(f'Input read file {read_file} does not exist or is empty!')
     if args.unpaired:
-        unpaired_readfile = os.path.abspath(args.unpaired)
-        if os.path.isfile(unpaired_readfile) and not os.path.getsize(unpaired_readfile) == 0:
-            logger.debug(f'Input read file {os.path.basename(unpaired_readfile)} exists and is not empty, '
-                         f'proceeding...')
+        if os.path.isfile(args.unpaired) and not os.path.getsize(args.unpaired) == 0:
+            logger.debug(f'Input read file {args.unpaired} exists and is not empty, proceeding...')
         else:
-            sys.exit(f'Input read file {os.path.basename(unpaired_readfile)} does not exist or is empty!')
+            sys.exit(f'Input read file {args.unpaired} does not exist or is empty!')
+    if os.path.isfile(targetfile) and not os.path.getsize(targetfile) == 0:
+        logger.debug(f'Input target file {targetfile} exists and is not empty, proceeding...')
     else:
-        unpaired_readfile = False
+        sys.exit(f'Input target file {targetfile} does not exist or is empty!')
 
     # If only a single readfile is supplied, set --merged to False regardless of user input:
     if len(readfiles) == 1 and args.merged:
@@ -1217,12 +1197,32 @@ def assemble(args):
                  f'parameter ({os.path.basename(args.unpaired)}). Please concatenate these two files and provide the '
                  f'single file as input using the -r/--readfiles parameter')
 
+    ####################################################################################################################
+    # Check/assign the target file and read files
+    ####################################################################################################################
+    if targetfile:
+        targetfile = os.path.abspath(targetfile)
+    else:
+        print(__doc__)
+        return
+
     # Check that the target file is formatted correctly and translates correctly. If it contains DNA sequences but
     # arg.bwa is false, translate and return the path to translated file:
     targetfile = check_targetfile(targetfile,
                                   targetfile_type,
                                   args.bwa,
                                   logger=logger)
+
+    if args.unpaired:
+        unpaired_readfile = os.path.abspath(args.unpaired)
+    else:
+        unpaired_readfile = False
+    if len(args.readfiles) < 1:
+        logger.error(f'{"[ERROR]:":10}  Please specify readfiles with -r')
+        return
+    if not targetfile:
+        logger.error(f'{"[ERROR]:":10}  Please specify a FASTA file containing target sequences.')
+        return
 
     ####################################################################################################################
     # Check manually provided targets if provided via the parameter --target
@@ -1552,8 +1552,8 @@ def check_dependencies_main(args):
 
 def check_targetfile_main(args):
     """
-    Performs targetfile checks. Does not translate a DNA file; low-complexity checks are performed on the target file
-    as provided.
+    Performs much the same targetfiel checks as check_targetfile() from module assemble.py. Does not translate a DNA
+    file; low-complexity checks are performed on the target file as provided.
 
     :param args: argparse namespace with subparser options for function check_targetfile()
     :return: None: no return value specified; default is None
@@ -1617,8 +1617,8 @@ def check_targetfile_main(args):
                                f'contains other representative sequences for the corresponding genes.', width=90,
                                initial_indent=" " * 11, subsequent_indent=" " * 14)
 
-        fill_3 = textwrap.fill(f'2) Start the run using the parameter "--timeout_assemble" (e.g. "--timeout_assemble '
-                               f'200"). See wiki <link> for details.',
+        fill_3 = textwrap.fill(f'2) Start the run using the flag "--allow_low_complexity_targetfile_sequences" and '
+                               f'the parameter "--timeout" (e.g. "--timeout 200"). See wiki <link> for details.',
                                width=90, initial_indent=" " * 11, subsequent_indent=" " * 14, break_on_hyphens=False)
 
         print(f'{fill_1}\n\n{fill_2}\n\n{fill_3}\n')

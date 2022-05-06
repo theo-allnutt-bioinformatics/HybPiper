@@ -40,25 +40,41 @@ def mkdir_p(path):
             raise
 
 
-def read_sorting(blastfilename):
-    """
-    Returns a dictionary of read_hit_dict[readID] = [target1, target2, ...]
+def blast2dict(blastfilename):
+    f1=open(blastfilename,'r')
 
-    :param str blastfilename: path the BLASTx tabular output file
-    :return: dict read_hit_dict: dictionary of read_hit_dict[readID] = [target1, target2, ...]
-    """
-
-    read_hit_dict = {}
-    blastfile = open(blastfilename)
-    for line in blastfile:
-        line = line.split()
-        readID = line[0]
-        target = line[1].split('-')[-1]
-        if readID in read_hit_dict:
-            if target not in read_hit_dict[readID]:
-                read_hit_dict[readID].append(target)
+    #print("blast2dict")
+    
+    data={}
+    genes=[]
+    
+    for i in f1:
+    
+        k=i.split("\t")
+        #if k.endswith("/1") or k.endswith("/1"):
+            #k=k[:-2]
+            
+        gene=k[1].split("-")[-1]
+        
+        if gene not in genes:
+        
+            genes.append(gene)
+            data[gene]=set()
+            data[gene].add(k[0])
+            #p0=sp.Popen("mkdir %s/%s" %(seqname,gene),shell=True).wait()
+            
         else:
-            read_hit_dict[readID] = [target]
+            
+            data[gene].add(k[0])
+            
+    f1.close()
+    
+    return data
+
+def read_sorting(blastfilename):
+
+    read_hit_dict=blast2dict(blastfilename)
+
     return read_hit_dict
 
 
@@ -118,7 +134,7 @@ def main():
 
     logging.info(f'{"[NOTE]:":10} Running script distribute_reads_to_targets.py with {args}')
     readfiles = args.readfiles
-    read_hit_dict = read_sorting(args.blast_filename)
+    read_hit_dict = blast2dict(args.blast_filename)
     logging.info(f'{"[NOTE]":10} Unique reads with hits: {len(read_hit_dict)}')
     distribute_reads(readfiles, read_hit_dict, merged=args.merged)
 

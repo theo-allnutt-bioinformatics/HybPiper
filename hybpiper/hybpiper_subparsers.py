@@ -127,8 +127,7 @@ def add_assemble_parser(subparsers):
                                  help='Directory name for pipeline output, default is to use the FASTQ file name.',
                                  default=None)
     parser_assemble.add_argument('--timeout_assemble',
-                                 help='Kill long-running gene assemblies if they take longer than X percent of '
-                                      'average.',
+                                 help='Kill long-running processes if they take longer than X percent of average.',
                                  default=0,
                                  type=int)
     parser_assemble.add_argument('--timeout_exonerate_contigs',
@@ -293,17 +292,12 @@ def add_retrieve_sequences_parser(subparsers):
                                            default=False)
     parser_retrieve_sequences.add_argument('--stats_file',
                                            help='Stats file produced by "hybpiper stats", required for selective '
-                                                'filtering of retrieved sequences',
-                                           default=None)
-    parser_retrieve_sequences.add_argument('--filter_by',
-                                           action='append',
-                                           nargs=3,
-                                           metavar=('column', 'comparison', 'threshold'),
+                                                'filtering of retrieved sequences')
+    parser_retrieve_sequences.add_argument('--filter_by', action='append', nargs=3,
                                            help='Provide three space-separated arguments: 1) column of the stats_file '
-                                                'to filter by, 2) "greater" or "smaller", 3) a threshold - either an '
-                                                'integer (raw number of genes) or float (percentage of genes in '
-                                                'analysis). This parameter can be supplied more than once to filter '
-                                                'by multiple criteria.')
+                                                'to filter by, 2) greater or less than symbol (> or <), '
+                                                '3) a threshold - either an integer (raw number of genes) or float ('
+                                                'percentage of genes in analysis).')
 
     return parser_retrieve_sequences
 
