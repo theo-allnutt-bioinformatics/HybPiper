@@ -50,6 +50,8 @@ For full details of all commands and changes, please reads the Wiki page at **LI
 
 """
 
+#updated 6/12/2022
+
 import argparse
 import os
 import sys
@@ -69,8 +71,7 @@ import pkg_resources
 import collections
 import time
 
-
-print("assemble.py dev version 1.0")
+print("assemble.py tallnutt dev version 1.0")
 
 # f-strings will produce a 'SyntaxError: invalid syntax' error if not supported by Python version:
 f'HybPiper requires Python 3.6 or higher.'
