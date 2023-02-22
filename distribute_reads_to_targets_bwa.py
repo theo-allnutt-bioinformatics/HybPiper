@@ -35,7 +35,7 @@ def seq2dict(seqfile):
 	i=seqfile.readline()
 	while i!="":
 		
-		id1=i[1:].split(" ")[0]
+		id1=i[1:].rstrip("\n").split(" ")[0]
 		
 		suffix=id1[-2:]
 		if suffix == ".1" or suffix == ".2" or suffix == "/1" or suffix == "/2" or suffix == "_1" or suffix == "_2":
